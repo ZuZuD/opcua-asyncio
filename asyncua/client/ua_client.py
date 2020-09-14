@@ -263,10 +263,15 @@ class UaClient:
         self.protocol = UASocketProtocol(self._timeout, security_policy=self.security_policy, loop=self.loop)
         return self.protocol
 
+    @property
+    def publish_task(self):
+        # accessor for the ha client
+        return self._publish_task
+
     async def connect_socket(self, host: str, port: int):
         """Connect to server socket."""
         self.logger.info("opening connection")
-        await self.loop.create_connection(self._make_protocol, host, port)
+        await asyncio.wait_for(self.loop.create_connection(self._make_protocol, host, port), self._timeout)
 
     def disconnect_socket(self):
         if self.protocol and self.protocol.state == UASocketProtocol.CLOSED:
@@ -695,4 +700,29 @@ class UaClient:
         response.ResponseHeader.ServiceResult.check()
         return response.Results
 
+    async def set_monitoring_mode(self, params) -> ua.uatypes.StatusCode:
+        self.logger.info("set_monitoring_mode")
+        request = ua.SetMonitoringModeRequest()
+        request.Parameters = params
+        data = await self.protocol.send_request(request)
+        response = struct_from_binary(ua.SetMonitoringModeResponse, data)
+        self.logger.debug(response)
+        response.ResponseHeader.ServiceResult.check()
+        return response.Parameters.Results
+
+
+    async def set_publishing_mode(self, params) -> ua.uatypes.StatusCode:
+        """
+        Change the publishing mode of a subscription
+        :param publishing: The publishing mode to apply
+        :return: Return a Set Publishing Mode Result
+        """
+        self.logger.info("set_publishing_mode")
+        request = ua.SetPublishingModeRequest()
+        request.Parameters = params
+        data = await self.protocol.send_request(request)
+        response = struct_from_binary(ua.SetPublishingModeResponse, data)
+        self.logger.debug(response)
+        response.ResponseHeader.ServiceResult.check()
+        return response.Parameters.Results
 

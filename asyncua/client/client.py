@@ -217,6 +217,16 @@ class Client:
             self.disconnect_socket()
         return servers
 
+    async def reconnect(self):
+        """
+        High level method to close any existing connection
+        """
+        try:
+            await self.disconnect()
+        except Exception:
+            pass
+        await self.connect()
+
     async def connect(self):
         """
         High level method
@@ -517,7 +527,7 @@ class Client:
         """
         return Node(self.uaclient, nodeid)
 
-    async def create_subscription(self, period, handler):
+    async def create_subscription(self, period, handler, publishing=True):
         """
         Create a subscription.
         Returns a Subscription object which allows to subscribe to events or data changes on server.
@@ -536,7 +546,7 @@ class Client:
             params.RequestedLifetimeCount = 10000
             params.RequestedMaxKeepAliveCount = 3000
             params.MaxNotificationsPerPublish = 10000
-            params.PublishingEnabled = True
+            params.PublishingEnabled = publishing
             params.Priority = 0
         subscription = Subscription(self.uaclient, params, handler)
         await subscription.init()
