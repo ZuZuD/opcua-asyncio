@@ -217,6 +217,7 @@ class Subscription:
         :param attr: ua.AttributeId
         :param mfilter: MonitoringFilter
         :param queuesize: queue size
+        :monitoring: ua.MonitoringMode
         :return: Integer handle or if multiple Nodes were given a List of Integer handles/ua.StatusCode
         """
         is_list = True

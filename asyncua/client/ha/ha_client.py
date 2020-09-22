@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import logging
 import asyncio
+import inspect
 
 from asyncua import ua, Client, Node
+from asyncua.client.ua_client import UASocketProtocol
 from enum import IntEnum
 from dataclasses import dataclass, field
 from typing import Dict, List, Iterable, Set, Union, Optional, Tuple, TypeVar, Type
@@ -141,6 +143,14 @@ class HaClient:
         async with self._vsub_lock:
             coros = [vsub.replay_failed_events(clients=clients) for vsub in self.vsubscriptions]
             await asyncio.gather(*coros)
+
+    async def debug_status(self):
+        async with self._vsub_lock:
+            for vsub in self.vsubscriptions:
+                for a in inspect.getmembers(vsub):
+                    if not inspect.ismethod(a[1]) and not a[0].startswith('__'):
+                        _logger.debug(a)
+            
 
     def get_client_cold_mode(self) -> Client:
         return self.active_client
@@ -331,6 +341,7 @@ class HaManager:
         
         healthy, unhealthy = self.group_clients_by_health()
         await self.ha_client.replay_failed_events(healthy)
+        await self.ha_client.debug_status()
 
     async def reconnect_warm(self):
         """
@@ -338,14 +349,12 @@ class HaManager:
         """
         active_client = self.ha_client.active_client
         #healthy, unhealthy = self.group_clients_by_health()
-        connects = []
-        resubs = []
         clients = self.ha_client.get_active_clients()
-        for client in clients:
+        async def reco_resub(client):
             if (
                 not client.uaclient.protocol or
                 client.uaclient.protocol
-                and client.uaclient.protocol.state == "closed" 
+                and client.uaclient.protocol.state == UASocketProtocol.CLOSED
             ):
                 if client == active_client:
                     publishing = True
@@ -353,23 +362,20 @@ class HaManager:
                 else:
                     publishing = False
                     monitoring=ua.MonitoringMode.Disabled
-                connects.append(client.reconnect())
+                await client.reconnect()
                 _logger.info(f"Resubscribing {client} with publishing: {publishing} and monitoring: {monitoring.name}")
-                resubs.append(self.ha_client.resubscribe(
+                await self.ha_client.resubscribe(
                     monitoring=monitoring,
                     publishing=publishing,
                     clients=[client]
-                ))
-        results = await asyncio.gather(*connects, return_exceptions=True)
-        for enum, result in enumerate(results):
-            if isinstance(result, Exception):
-                _logger.exception(f"Error when reconnecting {clients[enum]}: {repr(result)}")
+                )
+        coros = [reco_resub(c) for c in clients]
+        results = await asyncio.gather(*coros, return_exceptions=True)
 
-        results = await asyncio.gather(*resubs, return_exceptions=True)
         for enum, result in enumerate(results):
             if isinstance(result, Exception):
-                _logger.exception(f"Error when resubscribing {clients[enum]}: {repr(result)}")
-            
+                _logger.warning(f"Error when reconnecting {clients[enum]}: {repr(result)}")
+
     async def reconnect_cold(self):
         # in cold mode we only want to keep a connection to the primary
         active_client = self.ha_client.active_client

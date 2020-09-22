@@ -263,11 +263,6 @@ class UaClient:
         self.protocol = UASocketProtocol(self._timeout, security_policy=self.security_policy, loop=self.loop)
         return self.protocol
 
-    @property
-    def publish_task(self):
-        # accessor for the ha client
-        return self._publish_task
-
     async def connect_socket(self, host: str, port: int):
         """Connect to server socket."""
         self.logger.info("opening connection")
