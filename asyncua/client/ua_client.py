@@ -275,7 +275,9 @@ class UaClient:
         return self.protocol
 
     async def connect_socket(self, host: str, port: int):
-        """Connect to server socket."""
+        """
+        Connect to server socket.
+        """
         self.logger.info("opening connection")
         # Timeout the connection when the server isn't available
         await asyncio.wait_for(
