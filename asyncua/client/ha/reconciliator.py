@@ -44,7 +44,7 @@ class Reconciliator:
     OPC-UA objects.
 
     After a successfull reconciliation and if all the client status
-    are >= HEALTHY, the ideal_map is equal to the real_map.
+    are >= HEALTHY_STATE, the ideal_map is equal to the real_map.
     """
 
     BATCH_MI_SIZE = 1000

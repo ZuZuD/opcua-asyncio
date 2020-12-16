@@ -22,12 +22,12 @@ jobs:
 install:
   - pip install python-dateutil
   - pip install pytz
-  - pip install lxml
   - pip install aiofiles
   - pip install aiosqlite
   - pip install pytest --upgrade
   - pip install pytest-asyncio
   - pip install pytest-mock
+  - pip install asynctest
   - pip install cryptography
   - pip install dataclasses
   - pip install --editable .

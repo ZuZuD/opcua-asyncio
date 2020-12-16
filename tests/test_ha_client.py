@@ -289,15 +289,28 @@ class TestHaClient:
         assert len(healthy) == 2
         assert not unhealthy
 
-        # below 200 the service level is considered unhealthy
-        # change to unhealthy for srv1 and client1
-        client1 = ha_client.get_clients()[0]
-        await slevel.write_value(ua.Variant(199, ua.VariantType.Byte))
-        await wait_for_status_change(ha_client, client1, 199)
-        healthy, unhealthy = await ha_client.group_clients_by_health()
+	
+        # the service level is considered (by default) unhealthy below 200,
+        # so change to unhealthy for srv1 and client1
         clients = ha_client.get_clients()
+        await slevel.write_value(ua.Variant(199, ua.VariantType.Byte))
+        await wait_for_status_change(ha_client, clients[0], 199)
+        healthy, unhealthy = await ha_client.group_clients_by_health()
         assert clients[0] == unhealthy[0]
         assert clients[1] == healthy[0]
+
+        # now try with a custom HEALTHY_STATE value
+        ha_client.HEALTHY_STATE = 4
+        healthy, unhealthy = await ha_client.group_clients_by_health()
+        assert len(healthy) == 2
+        assert not unhealthy
+
+        await slevel.write_value(ua.Variant(3, ua.VariantType.Byte))
+        await wait_for_status_change(ha_client, clients[0], 3)
+        healthy, unhealthy = await ha_client.group_clients_by_health()
+        assert clients[0] == unhealthy[0]
+        assert clients[1] == healthy[0]
+
         # set back the value to 255 since the fixture as a wide scope
         await slevel.write_value(ua.Variant(255, ua.VariantType.Byte))
 

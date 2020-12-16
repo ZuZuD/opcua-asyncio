@@ -87,6 +87,7 @@ class Server:
         self.bserver: Optional[BinaryServer] = None
         self._discovery_clients = {}
         self._discovery_period = 60
+        self._discovery_handle = None
         self._policies = []
         self.nodes = Shortcuts(self.iserver.isession)
         # enable all endpoints by default
@@ -223,16 +224,19 @@ class Server:
         if period:
             self.loop.call_soon(self._schedule_renew_registration)
 
-    def unregister_to_discovery(self, url: str = "opc.tcp://localhost:4840"):
+    async def unregister_to_discovery(self, url: str = "opc.tcp://localhost:4840"):
         """
         stop registration thread
         """
         # FIXME: is there really no way to deregister?
-        self._discovery_clients[url].disconnect()
+        await self._discovery_clients[url].disconnect()
+        del self._discovery_clients[url]
+        if not self._discovery_clients and self._discovery_handle:
+            self._discovery_handle.cancel()
 
     def _schedule_renew_registration(self):
         self.loop.create_task(self._renew_registration())
-        self.loop.call_later(self._discovery_period, self._schedule_renew_registration)
+        self._discovery_handle = self.loop.call_later(self._discovery_period, self._schedule_renew_registration)
 
     async def _renew_registration(self):
         for client in self._discovery_clients.values():
@@ -291,7 +295,7 @@ class Server:
         # to be called just before starting server since it needs all parameters to be setup
         if ua.SecurityPolicyType.NoSecurity in self._security_policy:
             self._set_endpoints()
-            self._policies = [ua.SecurityPolicyFactory()]
+            self._policies = [ua.SecurityPolicyFactory(permission_ruleset=self._permission_ruleset)]
 
         if self._security_policy != [ua.SecurityPolicyType.NoSecurity]:
             if not (self.certificate and self.iserver.private_key):
@@ -380,6 +384,8 @@ class Server:
         """
         Stop server
         """
+        if self._discovery_handle:
+            self._discovery_handle.cancel()
         if self._discovery_clients:
             await asyncio.wait([client.disconnect() for client in self._discovery_clients.values()])
         await self.bserver.stop()

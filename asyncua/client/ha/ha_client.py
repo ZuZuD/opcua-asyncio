@@ -105,6 +105,10 @@ class HaClient:
     fits in the HaMode selected.
     """
 
+    # Override this if your servers require custom ServiceLevels
+    # i.e: You're using an OPC-UA proxy
+    HEALTHY_STATE = ConnectionStates.HEALTHY
+
     def __init__(
         self, config: HaConfig, security: Optional[HaSecurityConfig] = None, loop=None
     ) -> None:
@@ -332,7 +336,11 @@ class HaClient:
         unhealthy = []
         async with self._client_lock:
             for client, server in self.clients.items():
+<<<<<<< HEAD
                 if server.status >= ConnectionStates.HEALTHY:
+=======
+                if server.status >= self.HEALTHY_STATE:
+>>>>>>> 66c73c6f7c52b0555cc0a2085eb72ecb378118c7
                     healthy.append(client)
                 else:
                     unhealthy.append(client)
@@ -359,7 +367,11 @@ class HaClient:
                 if c_slevel > max_slevel:
                     serving_client = c
                     max_slevel = c_slevel
+<<<<<<< HEAD
             return serving_client if max_slevel >= ConnectionStates.HEALTHY else None
+=======
+            return serving_client if max_slevel >= self.HEALTHY_STATE else None
+>>>>>>> 66c73c6f7c52b0555cc0a2085eb72ecb378118c7
 
     async def debug_status(self):
         """

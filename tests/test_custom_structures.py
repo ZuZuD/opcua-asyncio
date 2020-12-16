@@ -37,7 +37,7 @@ def set_up_test_tree():
     return test_etree
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 async def _srv(server):
     class Srv:
         pass
@@ -87,7 +87,7 @@ async def test_opc_type_dict_append_struct_1(srv):
     assert result.attrib == case
 
 
-@pytest.mark.skip("support for theat currently removed")
+@pytest.mark.skip("Support for that feature currently removed")
 async def test_opc_type_dict_append_struct_2(srv):
     case = {'BaseType': 'ua:ExtensionObject',
             'Name': 'CustomizedStruct'}
@@ -318,7 +318,7 @@ async def test_get_ua_class_1(srv):
         pass
 
 
-@pytest.mark.skip("support for theat currently removed")
+@pytest.mark.skip("Support for that feature currently removed")
 async def test_get_ua_class_2(srv):
     struct_name = '*c*u_stom-ized&Stru#ct'
     struct_node = await srv.dict_builder.create_data_type(struct_name)
@@ -353,6 +353,7 @@ async def test_functional_basic(srv):
 
     basic_result = await basic_var.read_value()
     assert basic_result == basic_msg
+    await srv.srv.delete_nodes([basic_var])
 
 
 async def test_functional_advance(srv):
@@ -395,3 +396,4 @@ async def test_functional_advance(srv):
     assert basic_result == basic_msg
     nested_result = await nested_var.read_value()
     assert nested_result == nested_msg
+    await srv.srv.delete_nodes([basic_var, nested_var])

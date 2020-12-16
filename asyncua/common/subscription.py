@@ -103,8 +103,6 @@ class Subscription:
                     await self._call_status(notif)
                 else:
                     self.logger.warning("Notification type not supported yet for notification %s", notif)
-        else:
-            self.logger.warning("NotificationMessage is None.")
 
     async def delete(self):
         """
@@ -419,5 +417,8 @@ class Subscription:
         self.logger.info("set_publishing_mode")
         params = ua.SetPublishingModeParameters()
         params.SubscriptionIds = [self.subscription_id]
-        params.PublishingEnabled = True
-        return await self.server.set_publishing_mode(params)
+        params.PublishingEnabled = publishing
+        result = await self.server.set_publishing_mode(params)
+        if result[0].is_good():
+            self.parameters.PublishingEnabled = publishing
+        return result

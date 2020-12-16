@@ -33,7 +33,11 @@ Opc = namedtuple('opc', ['opc', 'server'])
 
 
 def pytest_generate_tests(metafunc):
-    if 'opc' in metafunc.fixturenames:
+    mark = metafunc.definition.get_closest_marker('parametrize')
+    # override the opc parameters when explicilty provided
+    if getattr(mark, "args", None) and "opc" in mark.args:
+        pass
+    elif "opc" in metafunc.fixturenames:
         metafunc.parametrize('opc', ['client', 'server'], indirect=True)
     elif 'history' in metafunc.fixturenames:
         metafunc.parametrize('history', ['dict', 'sqlite'], indirect=True)
@@ -50,7 +54,7 @@ def event_loop(request):
     loop.close()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='module')
 async def running_server(request):
     """
     Spawn a server in a separate thread
