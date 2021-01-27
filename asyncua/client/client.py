@@ -54,6 +54,7 @@ class Client:
         self.secure_channel_id = None
         self.secure_channel_timeout = 3600000  # 1 hour
         self.session_timeout = 3600000  # 1 hour
+        self.require_keepalive = False
         self._policy_ids = []
         self.uaclient: UaClient = UaClient(timeout, loop=self.loop)
         self.user_certificate = None
@@ -386,14 +387,15 @@ class Client:
 
     async def _renew_channel_loop(self):
         """
-        Renew the SecureChannel before the SessionTimeout will happen.
-        In theory we could do that only if no session activity
-        but it does not cost much..
+        The SecureChannel is renewed before SessionTimeout by default.
+        However, you can override this if you'd like to use your own
+        KeepAlive (i.e: HaClient).
         """
         try:
-            duration = min(self.session_timeout, self.secure_channel_timeout) * 0.7 / 1000
+            duration = min(self.session_timeout, self.secure_channel_timeout) if self.require_keepalive else self.secure_channel_timeout
+            # 0.7 is from spec. 0.001 is because asyncio.sleep expects time in seconds
+            duration *= 0.7 / 1000
             while True:
-                # 0.7 is from spec. 0.001 is because asyncio.sleep expects time in seconds
                 await asyncio.sleep(duration)
                 _logger.debug("renewing channel")
                 await self.open_secure_channel(renew=True)

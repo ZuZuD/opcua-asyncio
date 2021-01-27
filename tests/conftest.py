@@ -283,6 +283,7 @@ def ha_config():
                 f"opc.tcp://127.0.0.1:{srv_port2}",
             ],
             session_timeout=30,
+            secure_channel_timeout=3600,
         )
 
     return _ha_config
